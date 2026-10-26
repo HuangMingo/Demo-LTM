@@ -69,8 +69,8 @@ async function health(host, config) {
   const def = grpc.loadPackageDefinition(loader.loadSync(path.join(root, 'src/main/proto/chat.proto'), { longs: String, defaults: true })).chat;
   const client = new def.DemoService(`${host}:${grpcPort}`, grpc.credentials.createInsecure());
   const result = await Promise.allSettled([
-    fetch(`http://${host}:${restPort}/demo/health`, { signal: AbortSignal.timeout(1500) }).then(async r => { if (!r.ok) throw Error(`HTTP ${r.status}`); return r.json(); }),
-    new Promise((resolve, reject) => client.health({}, { deadline: Date.now() + 1500 }, (e, r) => e ? reject(e) : resolve(r)))
+    fetch(`http://${host}:${restPort}/demo/health`, { signal: AbortSignal.timeout(5000) }).then(async r => { if (!r.ok) throw Error(`HTTP ${r.status}`); return r.json(); }),
+    new Promise((resolve, reject) => client.health({}, { deadline: Date.now() + 5000 }, (e, r) => e ? reject(e) : resolve(r)))
   ]);
   client.close();
   const errors = result.map((r, i) => r.status === 'rejected' ? `${i ? 'gRPC' : 'REST'}: ${r.reason.message}` : null).filter(Boolean);
