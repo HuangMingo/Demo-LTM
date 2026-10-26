@@ -37,3 +37,27 @@ message ChatEvent {
   string text = 5;
   int64 sent_at = 6;
 }
+
+// Desktop REST và native gRPC dùng chung DemoStore, tách khỏi dữ liệu legacy /ws.
+service DemoService {
+  // Unary kiểm tra phiên server, tham gia phòng và đồng bộ lịch sử sau cursor.
+  rpc Health(Empty) returns (HealthReply);
+  rpc Join(JoinRequest) returns (Session);
+  rpc History(Query) returns (Page);
+  // Stream hai chiều cho chat; client streaming upload, server streaming download.
+  rpc Chat(stream Envelope) returns (stream Record);
+  rpc Upload(stream FileChunk) returns (FileInfo);
+  rpc Download(FileQuery) returns (stream FileChunk);
+}
+message Empty {}
+message HealthReply { string epoch = 1; }
+message JoinRequest { string room = 1; string username = 2; string user_id = 3; bool create = 4; }
+message Session { string token = 1; string epoch = 2; string room = 3; string username = 4; string user_id = 5; }
+message Query { string token = 1; int64 after = 2; }
+message Envelope { string token = 1; string text = 2; string request_id = 3; }
+message Record { string id = 1; int64 seq = 2; string username = 3; string user_id = 4; string text = 5; int64 sent_at = 6; FileInfo file = 7; string request_id = 8; }
+message Page { string epoch = 1; repeated Record messages = 2; bool truncated = 3; }
+message FileInfo { string id = 1; string name = 2; int64 size = 3; string sha256 = 4; }
+// Chunk đầu: token/name/expected_size. Chunk cuối: complete/sha256 xác nhận đủ file.
+message FileChunk { string token = 1; string name = 2; bytes data = 3; bool complete = 4; string sha256 = 5; int64 expected_size = 6; }
+message FileQuery { string token = 1; string id = 2; }
