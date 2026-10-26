@@ -1,0 +1,27 @@
+{
+  "name": "relay-chat-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Java REST / native gRPC chat demo over Radmin VPN",
+  "main": "electron/main.cjs",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "setup": "node scripts/setup.cjs",
+    "host": "node scripts/launch.cjs host",
+    "start": "node scripts/launch.cjs client",
+    "test": "node --test tests/*.test.cjs",
+    "test:integration": "node tests/integration.cjs",
+    "test:desktop": "node tests/desktop.cjs"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0"
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "playwright": "^1.64.1"
+  }
+}

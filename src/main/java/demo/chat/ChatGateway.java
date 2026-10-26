@@ -31,6 +31,11 @@ public final class ChatGateway {
     }
 
     public static synchronized void startGateway() {
+        startGateway(null);
+    }
+
+    public static synchronized void startGateway(DemoStore store) {
+        // Giữ endpoint legacy; chỉ thêm REST desktop khi có store dùng chung.
         if (app != null) return;
         String grpcHost = System.getenv().getOrDefault("GRPC_HOST", "localhost");
         int grpcPort = Integer.parseInt(System.getenv().getOrDefault("GRPC_PORT", "50051"));
@@ -38,7 +43,16 @@ public final class ChatGateway {
         ChatServiceGrpc.ChatServiceBlockingStub blocking = ChatServiceGrpc.newBlockingStub(channel);
         ChatServiceGrpc.ChatServiceStub async = ChatServiceGrpc.newStub(channel);
 
-        app = Javalin.create(config -> config.staticFiles.add("/web", Location.CLASSPATH));
+        app = Javalin.create(config -> {
+            // So sánh file với gRPC trong cùng chế độ không nén.
+            config.compression.none();
+            config.staticFiles.add("/web", Location.CLASSPATH);
+            config.http.maxRequestSize = 34L * 1024 * 1024;
+            config.jetty.multipartConfig.maxFileSize(33, io.javalin.config.SizeUnit.MB);
+            config.jetty.multipartConfig.maxTotalRequestSize(34, io.javalin.config.SizeUnit.MB);
+            config.jetty.multipartConfig.maxInMemoryFileSize(0, io.javalin.config.SizeUnit.MB);
+        });
+        if (store != null) DemoRest.install(app, store);
         app.get("/api/health", ctx -> ctx.json(Map.of("ok", true)));
         app.post("/api/login", ctx -> {
             JsonNode body = JSON.readTree(ctx.body());
@@ -89,7 +103,8 @@ public final class ChatGateway {
             ws.onMessage(ctx -> handleLiveMessage(ctx, async));
             ws.onClose(ctx -> closeLive(ctx, false));
         });
-        app.start(Integer.parseInt(System.getenv().getOrDefault("HTTP_PORT", "8080")));
+        // Nhận qua adapter Radmin; máy khách vẫn kết nối bằng IP cụ thể của host.
+        app.start("0.0.0.0", Integer.parseInt(System.getenv().getOrDefault("HTTP_PORT", "8080")));
         System.out.println("Chat web app: http://localhost:" + System.getenv().getOrDefault("HTTP_PORT", "8080"));
     }
 

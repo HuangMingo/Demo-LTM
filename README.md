@@ -1,80 +1,134 @@
-# Relay — Chat App demo gRPC
+# Relay — REST API / native gRPC Chat Lab
 
-Ứng dụng chat nhỏ dùng để minh họa bốn kiểu giao tiếp RPC của gRPC. Backend viết bằng Java, giao diện chạy trên trình duyệt. Người dùng, lịch sử tin nhắn và các kết nối đang hoạt động được lưu trong RAM; dữ liệu sẽ mất khi tắt server.
+Electron desktop, backend Java 17 + Maven + Javalin + Protobuf. Hai máy Windows kết nối qua Radmin VPN. Phòng/tin nhắn trong RAM, file trong thư mục tạm.
 
-## Bốn kiểu RPC trong ứng dụng
+## Các lệnh tại thư mục gốc
 
-| Kiểu giao tiếp | RPC | Chức năng demo |
-|---|---|---|
-| Unary | `Login` | Đăng nhập bằng tên hiển thị; một yêu cầu, một phản hồi |
-| Server streaming | `GetHistory` | Lấy lịch sử phòng chat; server trả từng tin nhắn qua stream |
-| Client streaming | `SendBatch` | Gửi nhiều tin nhắn trong một stream; server trả một kết quả tổng kết |
-| Bidirectional streaming | `LiveChat` | Tham gia phòng, gửi và nhận tin nhắn cùng sự kiện đang nhập theo thời gian thực |
+Mở PowerShell hoặc terminal IntelliJ/VS Code tại thư mục chứa package.json.
 
-Định nghĩa các RPC và message nằm trong [`src/main/proto/chat.proto`](src/main/proto/chat.proto).
+| Lệnh | Chức năng |
+|---|---|
+| `npm install` | Cài dependencies và tải Electron |
+| `npm run setup` | Build Java/proto thành backend có đủ dependencies |
+| `npm run host` | Chạy backend, đợi REST **và** gRPC cùng phiên sẵn sàng, mở Electron host |
+| `npm start` | Chỉ mở Electron; không tự chạy Java/Maven/backend |
 
-## Kiến trúc
+Yêu cầu Node **22.12+**, npm; chỉ host cần **JDK 17+**. Build cần JDK có javac. Script tìm JAVA_HOME, PATH và JDK IntelliJ trong `%USERPROFILE%\.jdks`. Không tự cài Java. Lần cài/build đầu cần Internet. Nếu PowerShell chặn npm.ps1, dùng `npm.cmd` thay `npm`; không cần đổi execution policy.
 
-```text
-Trình duyệt (HTML/CSS/JavaScript)
-        │ HTTP và WebSocket
-        ▼
-ChatGateway (Java, cổng 8080)
-        │ gRPC trên HTTP/2, dữ liệu Protobuf
-        ▼
-ChatServer (Java, cổng 50051)
-        └── Lưu người dùng, tin nhắn và kết nối trong RAM
-```
+Repo chưa có Maven Wrapper. Setup ưu tiên wrapper nếu có, rồi Maven local/PATH. Nếu Windows chưa có Maven, setup tải Maven **3.9.9** vào .tools, xác minh SHA-512; không cài Maven toàn hệ thống.
 
-Trình duyệt trao đổi với Gateway qua HTTP và WebSocket. Gateway gọi ChatServer bằng gRPC. ChatServer xử lý nghiệp vụ và quản lý dữ liệu trong RAM.
+### Máy A làm server
 
-## Yêu cầu
-
-- Java 17 trở lên.
-- Maven 3.10.0. Trong workspace này Maven đã được cài tại `.tools/apache-maven-3.10.0`.
-- Không cần Node.js để chạy giao diện; Gateway phục vụ trực tiếp các file web.
-
-## Khởi chạy
-
-Mở PowerShell tại thư mục dự án và chạy một lệnh. Lệnh này khởi động cả gRPC server và Gateway:
+Lần đầu:
 
 ```powershell
-& ".\.tools\apache-maven-3.10.0\bin\mvn.cmd" compile exec:java
+npm install
+npm run setup
 ```
 
-Sau khi cả hai tiến trình khởi động, mở địa chỉ [http://localhost:8080](http://localhost:8080).
+Mỗi lần sử dụng:
 
-Để dừng ứng dụng, nhấn `Ctrl+C` trong cửa sổ PowerShell đang chạy.
+```powershell
+npm run host
+```
 
-Mặc định gRPC server lắng nghe ở cổng `50051`, Gateway ở cổng `8080`. Có thể cấu hình bằng biến môi trường `GRPC_PORT`, `HTTP_PORT` và `GRPC_HOST`.
+Trong Electron nhập tên, mã phòng, bấm **Kết nối** để tạo phòng. Terminal in cổng, localhost và IPv4 theo adapter. Giao diện ghi rõ **Máy này đang làm server**. Chọn IP Radmin hoặc nhập thủ công, bấm **Sao chép thông tin** để chia sẻ IP, hai cổng và mã phòng.
 
-## Kịch bản demo
+Mặc định REST 8080, gRPC 50051. Đổi trước khi chạy:
 
-1. Chọn **Unary login**, nhập tên hiển thị rồi đăng nhập.
-2. Mở một cửa sổ trình duyệt khác và đăng nhập bằng tên khác.
-3. Vào **Live chat** ở cả hai cửa sổ để gửi, nhận tin nhắn và xem sự kiện phòng.
-4. Vào **Message batch**, nhập nhiều tin nhắn, mỗi tin trên một dòng, rồi gửi. Server nhận stream và phản hồi số tin đã lưu.
-5. Vào **History stream** để yêu cầu lịch sử phòng. Server gửi từng tin nhắn bằng server streaming RPC.
+```powershell
+$env:HTTP_PORT = "18080"
+$env:GRPC_PORT = "15051"
+npm run host
+```
 
-Giao diện có nhật ký hoạt động để theo dõi thời điểm bắt đầu và kết thúc từng RPC.
+Với npm run host, cổng UI phải trùng backend đã chạy. Để chọn cổng trước khi khởi động Java bằng UI, chạy npm start, chọn **Làm server**, nhập cổng rồi kết nối. Không tự đổi cổng khi cổng bận.
 
-## Lưu trữ và giới hạn demo
+Giữ terminal host mở. Đóng cửa sổ host có xác nhận các client sẽ mất kết nối. Ctrl+C dọn các tiến trình do launcher tạo: yêu cầu Java shutdown qua stdin riêng, chờ dọn file tạm; nếu không phản hồi, chỉ dừng cây PID đã tạo, không kill theo tên Java/Electron. Tắt máy/cưỡng bức kill có thể để lại file trong temp.
 
-- Dữ liệu chỉ tồn tại trong RAM của ChatServer; khởi động lại server sẽ xóa người dùng và lịch sử.
-- Mỗi phòng giữ tối đa 200 tin nhắn gần nhất.
-- Mỗi client streaming batch nhận tối đa 100 tin nhắn.
-- Tên hiển thị được dùng làm danh tính demo; ứng dụng chưa có mật khẩu hay xác thực production.
-- Ứng dụng tập trung minh họa giao tiếp gRPC, chưa có database hoặc lưu file lâu dài.
+### Máy B tham gia
 
-## Cấu trúc mã nguồn
+Lần đầu:
+
+```powershell
+npm install
+```
+
+Các lần sau:
+
+```powershell
+npm start
+```
+
+Chọn **Tham gia server**, nhập tên riêng, IP Radmin **máy A**, cổng REST/gRPC, đúng mã phòng đã tạo; chọn REST/gRPC rồi kết nối. Client không cần Java hay setup backend.
+
+Cấu hình gần nhất lưu ở connection.json trong Electron userData (thường `%APPDATA%\relay-chat-lab`), có thể sửa. Mỗi instance có user ID riêng, cho mở nhiều instance. Không lưu mật khẩu Radmin.
+
+## Radmin VPN và kiểm tra kết nối
+
+1. Hai máy tự cài Radmin VPN và tham gia cùng **mạng riêng** bên ngoài ứng dụng.
+2. Kiểm tra online trong Radmin. Người tạo mạng VPN không mặc nhiên là server chat.
+3. Máy A chạy host/tạo phòng, chia sẻ đúng IP adapter Radmin và hai cổng.
+4. Máy B nhập thông tin đó. localhost chỉ dùng trên cùng máy; 0.0.0.0 là địa chỉ bind, không phải địa chỉ để kết nối.
+5. Trên host cho phép đúng Java/hai cổng **TCP REST và gRPC** qua Windows Firewall trên kết nối VPN; có thể giới hạn remote address về IP Radmin máy B. Không tắt toàn bộ firewall, không cần mở cổng router.
+
+App không cài/cấu hình Radmin, không sửa firewall/mạng. Gợi ý adapter qua tên và InterfaceDescription chứa Radmin/Famatech, **không dựa tiền tố IP**. Nếu không đọc được description, vẫn liệt kê IPv4 và cho nhập thủ công.
+
+Nếu lỗi: kiểm tra IP host (không nhập http:// hoặc :port vào ô IP), trạng thái Radmin, cùng mạng riêng, hai cổng, rule firewall, log Java. Backend bind 0.0.0.0. Từ máy B kiểm tra `Test-NetConnection <IP-máy-A> -Port 8080` và tương tự 50051 (thay cổng nếu đổi).
+
+Thiếu Java: cài JDK 17+, đặt JAVA_HOME/PATH, mở lại terminal. Thiếu dependencies/Electron: npm install. Thiếu bản build hoặc sửa Java/proto: npm run setup. Cổng bận: dừng host cũ hoặc chọn cổng khác. Backend thất bại sẽ báo lỗi và không hiển thị kết nối thành công.
+
+## Kiến trúc và hành vi
 
 ```text
-.
-├── pom.xml
-├── src/main/proto/chat.proto              # Hợp đồng gRPC/Protobuf
-├── src/main/java/demo/chat/
-│   ├── ChatServer.java                    # Khởi động gRPC server
-│   ├── ChatService.java                   # Cài đặt bốn RPC và lưu RAM
-│   └── ChatGateway.java                   # REST/WebSocket bridge cho trình duyệt
-└── src/main/resources/web/index.html      # Giao diện Chat App
+Renderer sandbox → contextBridge / IPC giới hạn → Electron main
+  ├─ HTTP JSON, polling, multipart, HTTP download → Javalin
+  └─ native @grpc/grpc-js → Java DemoRpc
+                         ↓
+                      DemoStore → RAM / temp files
 ```
+
+- Hai đường dùng chung logic/phòng/file, chung src/main/proto/chat.proto cho Java và Node. Client REST và gRPC trao đổi dữ liệu cùng phòng.
+- REST: POST JSON, GET lịch sử sau cursor, polling mặc định 500 ms (chỉnh 100–10000 ms); request sau chỉ lên lịch khi request trước xong. Upload multipart có file/size/sha256, download HTTP stream.
+- gRPC: unary Join/History/Health, bidirectional Chat, client-streaming Upload, server-streaming Download. Tái sử dụng channel, chunk 64 KiB, backpressure, hàng đợi chat giới hạn. Unary History mỗi 2 giây để đối soát phiên/lịch sử.
+- File .txt tối đa 32 MiB/file, tổng 256 MiB/phiên. Truyền nguyên byte, giữ Unicode/xuống dòng. Metadata ID/tên/size/SHA-256; server kiểm tra đủ byte/checksum trước khi công bố. Không dùng tên client làm đường dẫn lưu. Không Base64, không đọc file lớn toàn bộ vào RAM hay đưa toàn bộ file qua IPC.
+- Download ghi .partial, kiểm tra size/hash rồi đổi tên; lỗi xóa file dở. Upload lỗi/hủy không công bố và dọn file dở. File REST tải được qua gRPC và ngược lại.
+- Đổi phương thức giữ người dùng/phòng/lịch sử, dừng stream/poll cũ, đồng bộ cursor liên tiếp và loại trùng theo ID. Khóa đổi khi truyền file/benchmark.
+- Mất server/VPN: báo mất kết nối, retry giới hạn với backoff 1/2/4 giây, có nút kết nối lại; không tự thành host. Server còn phiên thì đồng bộ lịch sử thiếu; restart thì báo phiên cũ mất và xóa lịch sử cũ. Host cần tạo lại phòng sau restart trước khi client tham gia.
+- Giữ 500 tin gần nhất/phòng, báo nếu lịch sử đã hết hạn. Mã phòng là cơ chế demo, chưa có tài khoản/xác thực sản phẩm.
+- UI cũ ở / và /ws, các RPC cũ vẫn giữ với dữ liệu legacy riêng; không tham gia hai đường đo desktop.
+- Renderer không có Node integration, dùng preload/contextBridge, IPC giới hạn; tin nhắn hiển thị bằng text, không thực thi HTML.
+
+## Đo hiệu năng
+
+Số liệu thật: HTTP requests, RPC calls, message/chunk, lỗi; thời gian gửi đến server ACK; upload đến server nhận/kiểm tra/lưu đủ; download đến client lưu/kiểm tra đủ; MiB/s. Dùng đồng hồ đơn điệu performance.now() trên cùng client; không trừ timestamp hai máy. Health check lúc connect cũng được tính.
+
+Benchmark: 1 vòng warm-up không tính, 3 vòng đo; mỗi phương thức/vòng 5 tin giống nhau và upload/download cùng file 256 KiB; tuần tự, luân phiên thứ tự REST/gRPC, cùng storage/checksum và **tắt nén cả hai đường**. Hiển thị trung vị/p95/số mẫu/lỗi, CSV chứa mẫu, cấu hình, ghi chú và counters tích lũy của client benchmark.
+
+Khi đo VPN, hai phương thức phải dùng cùng kết nối Radmin. Người dùng tự ghi Direct/Relay theo Radmin; app không giả vờ tự phát hiện. VPN, Direct/Relay, tải máy và polling ảnh hưởng kết quả. Protobuf không tự nén file, gRPC không bảo đảm luôn nhanh hơn. Benchmark nhỏ để minh họa, không phải kết luận tổng quát.
+
+## Kiểm thử từ repo
+
+Thử một máy: chạy host/tạo phòng; terminal khác chạy npm start, nhập 127.0.0.1, đúng cổng/phòng và tên khác. Cho phép mở nhiều client.
+
+```powershell
+npm test
+npm run test:integration
+npm run test:desktop
+```
+
+- npm test: validation cổng, adapter, cổng bận.
+- Integration: nhiều client cục bộ, chat REST↔REST/gRPC↔gRPC/REST↔gRPC, đổi phương thức, checksum bốn tổ hợp file, Unicode, upload bị ngắt, sai phòng, mất server và reconnect/epoch.
+- Desktop: Playwright mở hai Electron instance ẩn; host/client, chat chéo, text an toàn, chuyển phương thức, benchmark/CSV, đóng host/giải phóng cổng. Không cần tải browser riêng.
+- Kết quả kiểm thử thực tế ở [tests/VERIFICATION.md](tests/VERIFICATION.md).
+
+### Checklist hai máy thật
+
+Chưa kiểm thử hai máy thật qua Radmin; loopback không xác minh đường truyền VPN. Cần kiểm tra thủ công:
+
+- Hai máy khác mạng Internet, cùng Radmin private network; IP và cả hai cổng vào được.
+- Sai mã phòng bị từ chối; đúng mã gửi nhận hai chiều ở cả ba tổ hợp phương thức.
+- Đổi phương thức không trùng/mất tin; file Unicode/CRLF, file rỗng và gần 32 MiB có cùng checksum ở bốn tổ hợp upload/download.
+- Ngắt VPN/host trong chat/truyền file: báo lỗi, không công bố file dở, retry giới hạn; kết nối lại khi cùng phiên và sau restart.
+- Đóng host/Ctrl+C giải phóng cổng, không dừng ứng dụng Java khác.
+- Benchmark qua cùng VPN, ghi Direct/Relay quan sát thật và lưu CSV.
