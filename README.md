@@ -90,7 +90,7 @@ Renderer sandbox → contextBridge / IPC giới hạn → Electron main
 
 - Hai đường dùng chung logic/phòng/file, chung src/main/proto/chat.proto cho Java và Node. Client REST và gRPC trao đổi dữ liệu cùng phòng.
 - REST: POST JSON, GET lịch sử sau cursor, polling mặc định 500 ms (chỉnh 100–10000 ms); request sau chỉ lên lịch khi request trước xong. Upload multipart có file/size/sha256, download HTTP stream.
-- gRPC: unary Join/History/Health, bidirectional Chat, client-streaming Upload, server-streaming Download. Tái sử dụng channel, chunk 64 KiB, backpressure, hàng đợi chat giới hạn. Unary History mỗi 2 giây để đối soát phiên/lịch sử.
+- gRPC: unary Join/History/Health, bidirectional Chat, client-streaming Upload, server-streaming Download. Tái sử dụng channel, chunk 64 KiB, backpressure, hàng đợi chat giới hạn. History chỉ đồng bộ khi vào phòng, chuyển sang gRPC hoặc kết nối lại; tin mới đến qua stream Chat.
 - File .txt tối đa 32 MiB/file, tổng 256 MiB/phiên. Truyền nguyên byte, giữ Unicode/xuống dòng. Metadata ID/tên/size/SHA-256; server kiểm tra đủ byte/checksum trước khi công bố. Không dùng tên client làm đường dẫn lưu. Không Base64, không đọc file lớn toàn bộ vào RAM hay đưa toàn bộ file qua IPC.
 - Download ghi .partial, kiểm tra size/hash rồi đổi tên; lỗi xóa file dở. Upload lỗi/hủy không công bố và dọn file dở. File REST tải được qua gRPC và ngược lại.
 - Đổi phương thức giữ người dùng/phòng/lịch sử, dừng stream/poll cũ, đồng bộ cursor liên tiếp và loại trùng theo ID. Khóa đổi khi truyền file hoặc xuất số liệu.

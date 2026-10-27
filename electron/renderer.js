@@ -62,6 +62,7 @@ $('adapters').onchange = () => { $('shareIp').value = $('adapters').value; };
 $('benchmark').onclick = () => action(async () => {
   const result = await window.relay.call('benchmark', $('vpnNote').value);
   const measured = result.summary.filter(r => r.samples).map(r => `${r.mode} ${r.operation}: n=${r.samples}, median=${r.median?.toFixed(2) ?? '—'} ms, p95=${r.p95?.toFixed(2) ?? '—'} ms`).join('\n');
+  $('benchmarkResult').hidden = false;
   $('benchmarkResult').textContent = `${result.canceled ? 'Đã hủy lưu file.\n' : ''}${measured || 'Chưa có thao tác có độ trễ.'}\nMẫu thao tác: ${result.samples}\nTin nhắn quan sát: ${result.messages}\nLỗi: ${result.errors}`;
 });
 action(async () => {

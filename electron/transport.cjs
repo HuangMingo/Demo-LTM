@@ -109,13 +109,15 @@ class Transport extends EventEmitter {
     syncing = false;
     if (generation !== this.generation) return;
     buffered.sort((a,b) => Number(a.seq)-Number(b.seq)).forEach(record => this.receive(record));
-    // Chỉ đặt timeout tiếp sau khi request hoàn tất, tránh polling bị chồng lên nhau.
+    // gRPC nhận tin mới qua stream Chat; History chỉ dùng để đồng bộ lúc bắt đầu/kết nối lại.
+    if (this.config.mode === 'grpc') return;
+    // REST không có stream nhận tin nên tiếp tục polling sau khi request trước hoàn tất.
     const tick = async () => {
       if (generation !== this.generation) return;
       try { await this.history(generation); } catch (e) { if (generation === this.generation) this.lost(e); return; }
-      if (generation === this.generation) this.timer = setTimeout(tick, this.config.mode === 'rest' ? Number(this.config.pollMs) : 2000);
+      if (generation === this.generation) this.timer = setTimeout(tick, Number(this.config.pollMs));
     };
-    this.timer = setTimeout(tick, this.config.mode === 'rest' ? Number(this.config.pollMs) : 2000);
+    this.timer = setTimeout(tick, Number(this.config.pollMs));
   }
   async switchMode(mode) {
     if (this.busy) throw Error('Không chuyển phương thức khi đang truyền file.');

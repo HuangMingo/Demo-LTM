@@ -98,7 +98,8 @@ async function exportSession(note) {
     const values = rows.filter(r => r.mode === mode && r.operation === operation).map(r => Number(r.ms)).filter(Number.isFinite);
     summary.push({ mode, operation, samples: values.length, median: values.length ? percentile(values, .5) : null, p95: values.length ? percentile(values, .95) : null });
   }
-  const selected = await dialog.showSaveDialog(window, { defaultPath: 'relay-session.csv', filters: [{ name: 'CSV', extensions: ['csv'] }] });
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+  const selected = await dialog.showSaveDialog(window, { defaultPath: `relay-session-${stamp}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] });
   if (!selected.canceled) {
     const sampleHeaders = ['measuredAt','username','room','mode','operation','ms','bytes','mibps','messageId','seq','text','fileName','fileId','note','http','rpc','chunks'];
     const messageHeaders = ['observedAt','mode','direction','username','userId','seq','sentAt','messageId','text','fileName','fileBytes'];
@@ -106,7 +107,11 @@ async function exportSession(note) {
     const csv = ['THAO_TAC_THUC_TE', sampleHeaders.join(','), ...rows.map(r => sampleHeaders.map(h => escape(r[h])).join(',')), '',
       'mode,operation,samples,median_ms,p95_ms', ...summary.map(r => [r.mode,r.operation,r.samples,r.median ?? '',r.p95 ?? ''].join(',')), '',
       'HOI_THOAI_QUAN_SAT', messageHeaders.join(','), ...messages.map(r => messageHeaders.map(h => escape(r[h])).join(','))].join('\r\n');
-    await fs.promises.writeFile(selected.filePath, '\uFEFF' + csv);
+    try { await fs.promises.writeFile(selected.filePath, '\uFEFF' + csv); }
+    catch (error) {
+      if (error.code === 'EBUSY' || error.code === 'EPERM') throw Error('File CSV đang mở trong Excel. Hãy đóng file hoặc lưu với tên khác rồi thử lại.');
+      throw error;
+    }
   }
   return { summary, errors: 0, samples: rows.length, messages: messages.length, canceled: selected.canceled };
 }
@@ -119,7 +124,7 @@ app.whenReady().then(() => {
   ipcMain.handle('relay:call', async (event, action, value) => {
     if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw Error('IPC sender không hợp lệ.');
     try { return { ok: true, value: await handle(action, value) }; }
-    catch (e) { emit('notice', e.message); return { ok: false, error: e.message }; }
+    catch (e) { return { ok: false, error: e.message }; }
   });
   // Host phải xác nhận trước khi đóng vì việc dừng backend ảnh hưởng mọi client.
   window.on('close', event => {

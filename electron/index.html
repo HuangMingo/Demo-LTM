@@ -64,20 +64,23 @@
               MiB/phiên</span></div>
         </section>
       </main>
-      <!-- <aside class="side"><section class="panel side-card"><h3>Số liệu thực tế</h3><div id="stats" class="result"></div><div id="measurement" class="result">Chưa có phép đo</div><p class="note">Đồng hồ đơn điệu trên client. Upload/download gồm xác nhận hoặc lưu và kiểm tra SHA-256.</p></section> -->
-      <section class="panel side-card">
-        <h3>Số liệu phiên thực tế</h3><label>Ghi chú Radmin Direct / Relay<input id="vpnNote"
-            placeholder="Tự ghi trạng thái quan sát trong Radmin"></label><button id="benchmark" class="btn secondary"
-          disabled>Xuất CSV phiên</button>
-        <div id="benchmarkResult" class="result">Chat, gửi file và tải file thật để tạo mẫu; chương trình không tự sinh
-          lưu lượng benchmark.</div>
-        <p class="note">CSV gồm thao tác do máy này thực hiện và hội thoại máy này quan sát. Để có độ trễ gửi của cả hai
-          máy, xuất CSV trên cả hai client. REST polling phụ thuộc chu kỳ.</p>
-      </section>
-      <section class="panel side-card">
-        <h3>Nhật ký</h3>
-        <div id="log" class="log"></div>
-      </section>
+      <aside class="side">
+        <section class="panel side-card">
+          <h3>Số liệu thực tế</h3>
+          <div id="stats" class="result"></div>
+          <!-- <div id="measurement" class="result">Chưa có phép đo</div> -->
+          <!-- <p class="note">Đồng hồ đơn điệu trên client. Upload/download gồm xác nhận hoặc lưu và kiểm tra SHA-256.</p> -->
+        </section>
+        <section class="panel side-card">
+          <h3>Số liệu phiên thực tế</h3><label>Ghi chú Radmin Direct / Relay<input id="vpnNote"
+              placeholder="Tự ghi trạng thái quan sát trong Radmin"></label><button id="benchmark" class="btn secondary"
+            disabled>Xuất CSV phiên</button>
+          <div id="benchmarkResult" class="result" hidden></div>
+        </section>
+        <section class="panel side-card">
+          <h3>Nhật ký</h3>
+          <div id="log" class="log"></div>
+        </section>
       </aside>
     </div>
   </div>
