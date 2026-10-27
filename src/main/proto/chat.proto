@@ -6,13 +6,11 @@ option java_package = "demo.chat.proto";
 option java_outer_classname = "ChatProtocol";
 
 service ChatService {
-  // Unary: authenticate a demo user and return an in-memory identity.
+  // Unary: xác thực người dùng thử nghiệm và trả về thông tin định danh được lưu trong bộ nhớ.
   rpc Login(LoginRequest) returns (LoginReply);
-  // Server streaming: replay room history, one message at a time.
+  // Server streaming: trả lại lịch sử phòng, mỗi lần gửi một tin nhắn.
   rpc GetHistory(HistoryRequest) returns (stream ChatMessage);
-  // Client streaming: submit an offline batch and receive one summary.
-  rpc SendBatch(stream ChatMessage) returns (BatchReply);
-  // Bidirectional streaming: live room events and messages.
+  // Streaming hai chiều: trao đổi trực tiếp các sự kiện và tin nhắn trong phòng.
   rpc LiveChat(stream ChatEvent) returns (stream ChatEvent);
 }
 
@@ -27,7 +25,6 @@ message ChatMessage {
   string text = 5;
   int64 sent_at = 6;
 }
-message BatchReply { int32 accepted = 1; string room_id = 2; string message = 3; }
 enum EventType { EVENT_UNSPECIFIED = 0; JOIN = 1; MESSAGE = 2; TYPING = 3; LEAVE = 4; SYSTEM = 5; }
 message ChatEvent {
   EventType type = 1;

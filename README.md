@@ -93,7 +93,7 @@ Renderer sandbox → contextBridge / IPC giới hạn → Electron main
 - gRPC: unary Join/History/Health, bidirectional Chat, client-streaming Upload, server-streaming Download. Tái sử dụng channel, chunk 64 KiB, backpressure, hàng đợi chat giới hạn. Unary History mỗi 2 giây để đối soát phiên/lịch sử.
 - File .txt tối đa 32 MiB/file, tổng 256 MiB/phiên. Truyền nguyên byte, giữ Unicode/xuống dòng. Metadata ID/tên/size/SHA-256; server kiểm tra đủ byte/checksum trước khi công bố. Không dùng tên client làm đường dẫn lưu. Không Base64, không đọc file lớn toàn bộ vào RAM hay đưa toàn bộ file qua IPC.
 - Download ghi .partial, kiểm tra size/hash rồi đổi tên; lỗi xóa file dở. Upload lỗi/hủy không công bố và dọn file dở. File REST tải được qua gRPC và ngược lại.
-- Đổi phương thức giữ người dùng/phòng/lịch sử, dừng stream/poll cũ, đồng bộ cursor liên tiếp và loại trùng theo ID. Khóa đổi khi truyền file/benchmark.
+- Đổi phương thức giữ người dùng/phòng/lịch sử, dừng stream/poll cũ, đồng bộ cursor liên tiếp và loại trùng theo ID. Khóa đổi khi truyền file hoặc xuất số liệu.
 - Mất server/VPN: báo mất kết nối, retry giới hạn với backoff 1/2/4 giây, có nút kết nối lại; không tự thành host. Server còn phiên thì đồng bộ lịch sử thiếu; restart thì báo phiên cũ mất và xóa lịch sử cũ. Host cần tạo lại phòng sau restart trước khi client tham gia.
 - Giữ 500 tin gần nhất/phòng, báo nếu lịch sử đã hết hạn. Mã phòng là cơ chế demo, chưa có tài khoản/xác thực sản phẩm.
 - UI cũ ở / và /ws, các RPC cũ vẫn giữ với dữ liệu legacy riêng; không tham gia hai đường đo desktop.
@@ -103,7 +103,7 @@ Renderer sandbox → contextBridge / IPC giới hạn → Electron main
 
 Số liệu thật: HTTP requests, RPC calls, message/chunk, lỗi; thời gian gửi đến server ACK; upload đến server nhận/kiểm tra/lưu đủ; download đến client lưu/kiểm tra đủ; MiB/s. Dùng đồng hồ đơn điệu performance.now() trên cùng client; không trừ timestamp hai máy. Health check lúc connect cũng được tính.
 
-Benchmark: 1 vòng warm-up không tính, 3 vòng đo; mỗi phương thức/vòng 5 tin giống nhau và upload/download cùng file 256 KiB; tuần tự, luân phiên thứ tự REST/gRPC, cùng storage/checksum và **tắt nén cả hai đường**. Hiển thị trung vị/p95/số mẫu/lỗi, CSV chứa mẫu, cấu hình, ghi chú và counters tích lũy của client benchmark.
+Số liệu phiên: ứng dụng lưu các phép đo phát sinh từ tin nhắn, upload và download thật do người dùng thực hiện; không tự tạo user, tin nhắn hoặc file benchmark. Nút xuất CSV ghi các mẫu cục bộ, trung vị/p95, counters và toàn bộ hội thoại client đã quan sát. Mỗi client xuất một CSV để lấy độ trễ thao tác do chính máy đó khởi tạo.
 
 Khi đo VPN, hai phương thức phải dùng cùng kết nối Radmin. Người dùng tự ghi Direct/Relay theo Radmin; app không giả vờ tự phát hiện. VPN, Direct/Relay, tải máy và polling ảnh hưởng kết quả. Protobuf không tự nén file, gRPC không bảo đảm luôn nhanh hơn. Benchmark nhỏ để minh họa, không phải kết luận tổng quát.
 

@@ -1,34 +1,87 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:">
-  <title>Relay · REST / gRPC Lab</title><link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'self' data:">
+  <title>Relay · REST / gRPC Lab</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body><div class="shell">
-  <header class="top"><div class="brand"><div class="logo">r</div><div><strong>relay</strong><small>REST / native gRPC · desktop lab</small></div></div><div class="status" id="status">Chưa kết nối</div></header>
-  <section class="intro"><div class="eyebrow">NETWORK PROGRAMMING · RADMIN VPN</div><h1>Một phòng chat, hai đường truyền.</h1><p>Java 17 · dữ liệu trong RAM · file tạm · không dùng WebSocket trong hai chế độ đo</p></section>
-  <!-- Cấu hình host/client; thao tác mạng được chuyển qua preload tới main process. -->
-  <section class="panel settings"><h2>Kết nối</h2><div class="grid">
-    <label>Vai trò<select id="role"><option value="client">Tham gia server</option><option value="host">Làm server</option></select></label>
-    <label>Tên hiển thị<input id="username" maxlength="32" value="Guest"></label>
-    <label>Mã phòng<input id="room" maxlength="40" value="demo"></label>
-    <label>IP / hostname server<input id="host" value="127.0.0.1" placeholder="IP Radmin của máy A"></label>
-    <label>Cổng REST<input id="restPort" type="number" value="8080" min="1" max="65535"></label>
-    <label>Cổng gRPC<input id="grpcPort" type="number" value="50051" min="1" max="65535"></label>
-    <label>REST polling (ms)<input id="pollMs" type="number" min="100" max="10000" value="500"></label>
-    <button id="connect" class="btn">Kết nối / Kết nối lại</button>
-  </div><p id="roleInfo" class="note">Máy khách không khởi động backend. Nhập IP Radmin của host; localhost chỉ dùng khi thử trên cùng máy.</p>
-  <div id="hostInfo" hidden><strong>Máy này đang làm server</strong><p class="note">Chọn adapter theo tên. Không suy đoán Radmin từ tiền tố IP. Có thể nhập IP thủ công.</p><div class="row"><select id="adapters"></select><input id="shareIp" placeholder="IP chia sẻ cho máy B"><button id="copy" class="btn secondary">Sao chép thông tin</button></div></div>
-  </section>
-  <!-- Dùng cùng khung chat và bảng số liệu khi đổi REST/native gRPC. -->
-  <div class="layout"><main class="panel main">
-    <nav class="tabs"><button id="rest" class="tab active">REST API</button><button id="grpc" class="tab">gRPC</button><span id="identity" class="note">Chưa tham gia phòng</span></nav>
-    <section class="view"><div id="chatbox" class="chatbox"><p class="note">Kết nối để bắt đầu. Host tạo mã phòng; client cần nhập đúng mã đó.</p></div>
-    <form id="compose" class="compose"><input id="text" placeholder="Viết tin nhắn…" maxlength="8192" disabled><button class="btn" id="send" disabled>Gửi ↗</button></form>
-    <div class="row file-row"><button id="upload" class="btn secondary" disabled>Gửi file .txt</button><progress id="progress" value="0" max="1"></progress><span id="progressText" class="note">Giới hạn 32 MiB/file, 256 MiB/phiên</span></div>
-    </section></main>
-    <aside class="side"><section class="panel side-card"><h3>Số liệu thực tế</h3><div id="stats" class="result"></div><div id="measurement" class="result">Chưa có phép đo</div><p class="note">Đồng hồ đơn điệu trên client. Upload/download gồm xác nhận hoặc lưu và kiểm tra SHA-256.</p></section>
-    <section class="panel side-card"><h3>Benchmark</h3><label>Ghi chú Radmin Direct / Relay<input id="vpnNote" placeholder="Tự ghi trạng thái quan sát trong Radmin"></label><button id="benchmark" class="btn secondary" disabled>Chạy và xuất CSV</button><div id="benchmarkResult" class="result">Warm-up + 3 lượt; 5 tin và file 256 KiB mỗi phương thức; luân phiên thứ tự.</div><p class="note">Cùng kết nối VPN; Direct/Relay ảnh hưởng kết quả. REST polling phụ thuộc chu kỳ. Protobuf không tự nén file. gRPC không bảo đảm luôn nhanh hơn.</p></section>
-    <section class="panel side-card"><h3>Nhật ký</h3><div id="log" class="log"></div></section></aside></div>
-</div><script src="renderer.js"></script></body></html>
+
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">r</div>
+        <div><strong>relay</strong><small>REST / native gRPC · desktop lab</small></div>
+      </div>
+      <div class="status" id="status">Chưa kết nối</div>
+    </header>
+    <section class="intro">
+      <div class="eyebrow">NETWORK PROGRAMMING · RADMIN VPN</div>
+      <h1>Một phòng chat, hai đường truyền.</h1>
+      <p>Java 17 · dữ liệu trong RAM · file tạm · không dùng WebSocket trong hai chế độ đo</p>
+    </section>
+    <!-- Cấu hình host/client; thao tác mạng được chuyển qua preload tới main process. -->
+    <section class="panel settings">
+      <h2>Kết nối</h2>
+      <div class="grid">
+        <label>Vai trò<select id="role">
+            <option value="client">Tham gia server</option>
+            <option value="host">Làm server</option>
+          </select></label>
+        <label>Tên hiển thị<input id="username" maxlength="32" value="Guest"></label>
+        <label>Mã phòng<input id="room" maxlength="40" value="demo"></label>
+        <label>IP / hostname server<input id="host" value="127.0.0.1" placeholder="IP Radmin của máy A"></label>
+        <label>Cổng REST<input id="restPort" type="number" value="8080" min="1" max="65535"></label>
+        <label>Cổng gRPC<input id="grpcPort" type="number" value="50051" min="1" max="65535"></label>
+        <label>REST polling (ms)<input id="pollMs" type="number" min="100" max="10000" value="500"></label>
+        <button id="connect" class="btn">Kết nối / Kết nối lại</button>
+      </div>
+      <p id="roleInfo" class="note">Máy khách không khởi động backend. Nhập IP Radmin của host; localhost chỉ dùng khi
+        thử trên cùng máy.</p>
+      <div id="hostInfo" hidden><strong>Máy này đang làm server</strong>
+        <p class="note">Chọn adapter theo tên. Không suy đoán Radmin từ tiền tố IP. Có thể nhập IP thủ công.</p>
+        <div class="row"><select id="adapters"></select><input id="shareIp" placeholder="IP chia sẻ cho máy B"><button
+            id="copy" class="btn secondary">Sao chép thông tin</button></div>
+      </div>
+    </section>
+    <!-- Dùng cùng khung chat và bảng số liệu khi đổi REST/native gRPC. -->
+    <div class="layout">
+      <main class="panel main">
+        <nav class="tabs"><button id="rest" class="tab active">REST API</button><button id="grpc"
+            class="tab">gRPC</button><span id="identity" class="note">Chưa tham gia phòng</span></nav>
+        <section class="view">
+          <div id="chatbox" class="chatbox">
+            <p class="note">Kết nối để bắt đầu. Host tạo mã phòng; client cần nhập đúng mã đó.</p>
+          </div>
+          <form id="compose" class="compose"><input id="text" placeholder="Viết tin nhắn…" maxlength="8192"
+              disabled><button class="btn" id="send" disabled>Gửi ↗</button></form>
+          <div class="row file-row"><button id="upload" class="btn secondary" disabled>Gửi file .txt</button><progress
+              id="progress" value="0" max="1"></progress><span id="progressText" class="note">Giới hạn 32 MiB/file, 256
+              MiB/phiên</span></div>
+        </section>
+      </main>
+      <!-- <aside class="side"><section class="panel side-card"><h3>Số liệu thực tế</h3><div id="stats" class="result"></div><div id="measurement" class="result">Chưa có phép đo</div><p class="note">Đồng hồ đơn điệu trên client. Upload/download gồm xác nhận hoặc lưu và kiểm tra SHA-256.</p></section> -->
+      <section class="panel side-card">
+        <h3>Số liệu phiên thực tế</h3><label>Ghi chú Radmin Direct / Relay<input id="vpnNote"
+            placeholder="Tự ghi trạng thái quan sát trong Radmin"></label><button id="benchmark" class="btn secondary"
+          disabled>Xuất CSV phiên</button>
+        <div id="benchmarkResult" class="result">Chat, gửi file và tải file thật để tạo mẫu; chương trình không tự sinh
+          lưu lượng benchmark.</div>
+        <p class="note">CSV gồm thao tác do máy này thực hiện và hội thoại máy này quan sát. Để có độ trễ gửi của cả hai
+          máy, xuất CSV trên cả hai client. REST polling phụ thuộc chu kỳ.</p>
+      </section>
+      <section class="panel side-card">
+        <h3>Nhật ký</h3>
+        <div id="log" class="log"></div>
+      </section>
+      </aside>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+
+</html>

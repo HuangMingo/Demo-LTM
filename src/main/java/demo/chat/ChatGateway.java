@@ -12,13 +12,12 @@ import io.javalin.websocket.WsContext;
 import io.javalin.websocket.WsMessageContext;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Browser bridge: REST for unary/batch calls and WebSocket for live bidirectional events. */
+/** Browser bridge: REST for unary/history calls and WebSocket for live bidirectional events. */
 public final class ChatGateway {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Map<WsContext, StreamObserver<ChatEvent>> LIVE = new ConcurrentHashMap<>();
@@ -73,31 +72,6 @@ public final class ChatGateway {
             if (!done.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("History stream timed out");
             if (failure.get() != null) throw new IllegalStateException(failure.get().getMessage());
             ctx.json(messages);
-        });
-        app.post("/api/batch", ctx -> {
-            JsonNode body = JSON.readTree(ctx.body());
-            String userId = body.path("userId").asText("");
-            String username = body.path("username").asText("Guest");
-            String room = body.path("roomId").asText("general");
-            JsonNode texts = body.path("messages");
-            CountDownLatch done = new CountDownLatch(1);
-            AtomicReference<BatchReply> reply = new AtomicReference<>();
-            AtomicReference<Throwable> failure = new AtomicReference<>();
-            StreamObserver<ChatMessage> request = async.sendBatch(new StreamObserver<>() {
-                @Override public void onNext(BatchReply value) { reply.set(value); }
-                @Override public void onError(Throwable t) { failure.set(t); done.countDown(); }
-                @Override public void onCompleted() { done.countDown(); }
-            });
-            if (texts.isArray()) for (JsonNode text : texts) {
-                String content = text.asText("").trim();
-                if (!content.isBlank()) request.onNext(ChatMessage.newBuilder().setId(UUID.randomUUID().toString())
-                        .setUserId(userId).setUsername(username).setRoomId(room).setText(content).build());
-            }
-            request.onCompleted();
-            if (!done.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Batch stream timed out");
-            if (failure.get() != null) throw new IllegalStateException(failure.get().getMessage());
-            BatchReply result = reply.get();
-            ctx.json(Map.of("accepted", result.getAccepted(), "roomId", result.getRoomId(), "message", result.getMessage()));
         });
         app.ws("/ws", ws -> {
             ws.onMessage(ctx -> handleLiveMessage(ctx, async));

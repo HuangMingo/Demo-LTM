@@ -28,7 +28,6 @@ function message(record) {
     const button = document.createElement('button'); button.className = 'btn secondary'; button.dataset.download = record.file.id;
     button.textContent = `Tải ${record.file.name} (${record.file.size} byte)`; button.disabled = busy || !connected;
     button.onclick = () => action(() => window.relay.call('download', record.file.id)); text.append(button);
-    const hash = document.createElement('small'); hash.textContent = '\nSHA-256: ' + record.file.sha256; text.append(hash);
   }
   row.append(meta, text);
   const next = [...$('chatbox').children].find(element => Number(element.dataset.seq) > Number(record.seq));
@@ -51,13 +50,19 @@ $('connect').onclick = () => action(async () => {
   $('identity').textContent = `${result.host ? 'HOST' : 'CLIENT'} · ${result.session.username} · ${result.session.room}`;
 });
 for (const value of ['rest','grpc']) $(value).onclick = () => action(async () => { if (connected) await window.relay.call('mode', value); selectedMode(value); });
-$('compose').onsubmit = event => { event.preventDefault(); const text = $('text').value; if (text.trim()) action(async () => { await window.relay.call('send', text); $('text').value = ''; }); };
+$('compose').onsubmit = async event => {
+  event.preventDefault();
+  const input = $('text'); const text = input.value;
+  if (text.trim()) await action(async () => { await window.relay.call('send', text); input.value = ''; });
+  if (connected) input.focus();
+};
 $('upload').onclick = () => action(() => window.relay.call('upload'));
 $('copy').onclick = () => action(async () => { await window.relay.call('copy', $('shareIp').value); log('Đã sao chép IP, cổng và mã phòng.'); });
 $('adapters').onchange = () => { $('shareIp').value = $('adapters').value; };
 $('benchmark').onclick = () => action(async () => {
   const result = await window.relay.call('benchmark', $('vpnNote').value);
-  $('benchmarkResult').textContent = result.summary.map(r => `${r.mode} ${r.operation}: n=${r.samples}, median=${r.median?.toFixed(2) ?? '—'} ms, p95=${r.p95?.toFixed(2) ?? '—'} ms`).join('\n') + `\nLỗi: ${result.errors}`;
+  const measured = result.summary.filter(r => r.samples).map(r => `${r.mode} ${r.operation}: n=${r.samples}, median=${r.median?.toFixed(2) ?? '—'} ms, p95=${r.p95?.toFixed(2) ?? '—'} ms`).join('\n');
+  $('benchmarkResult').textContent = `${result.canceled ? 'Đã hủy lưu file.\n' : ''}${measured || 'Chưa có thao tác có độ trễ.'}\nMẫu thao tác: ${result.samples}\nTin nhắn quan sát: ${result.messages}\nLỗi: ${result.errors}`;
 });
 action(async () => {
   const initial = await window.relay.call('init');

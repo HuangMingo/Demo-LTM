@@ -16,7 +16,7 @@ Các lệnh đã chạy:
 
 Integration xác minh REST–REST, gRPC–gRPC, REST–gRPC; chuyển phương thức không trùng ID; bốn tổ hợp upload/download giữ nguyên byte, tên Unicode và SHA-256; file rỗng; đồng bộ tin bỏ lỡ khi reconnect cùng phiên; upload gRPC bị ngắt không công bố; từ chối sai mã phòng; phát hiện mất server, restart epoch và reconnect; health check phát hiện riêng lỗi gRPC.
 
-Desktop xác minh tạo host từ UI, client tham gia qua native gRPC, chat hai chiều với REST, HTML người dùng được hiển thị dưới dạng text, renderer không có require/Node integration, chuyển phương thức không trùng tin, benchmark với CSV có số liệu thật và 0 lỗi. Đóng host giải phóng backend. Ảnh kiểm thử: target/desktop-smoke.png (không commit).
+Desktop xác minh tạo host từ UI, client tham gia qua native gRPC, chat hai chiều với REST, HTML người dùng được hiển thị dưới dạng text, renderer không có require/Node integration, chuyển phương thức không trùng tin, xuất CSV từ số liệu phiên thật và 0 lỗi. Đóng host giải phóng backend. Ảnh kiểm thử: target/desktop-smoke.png (không commit).
 
 Thử Ctrl+C ở terminal host 18080/15051: Java ghi log shutdown; kiểm tra bind lại cả hai cổng đều FREE. Tiến trình đang dùng 8080 được giữ nguyên. npm.cmd có thể hỏi `Terminate batch job (Y/N)?` khi nhận Ctrl+C; backend đã được dừng trước câu hỏi này.
 

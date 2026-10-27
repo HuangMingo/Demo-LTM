@@ -32,7 +32,7 @@ class Transport extends EventEmitter {
   }
   // Mỗi lần connect có mã riêng để kết quả từ yêu cầu cũ không ghi đè kết nối mới.
   async connect(config, reconnect = false) {
-    if (this.busy) throw Error('Đang truyền file/benchmark; chờ hoàn tất.');
+    if (this.busy) throw Error('Đang truyền file; chờ hoàn tất.');
     this.stop(reconnect);
     const attempt = ++this.connectionAttempt;
     if (!reconnect) this.reconnecting = false;
@@ -118,7 +118,7 @@ class Transport extends EventEmitter {
     this.timer = setTimeout(tick, this.config.mode === 'rest' ? Number(this.config.pollMs) : 2000);
   }
   async switchMode(mode) {
-    if (this.busy) throw Error('Không chuyển phương thức khi đang truyền file/benchmark.');
+    if (this.busy) throw Error('Không chuyển phương thức khi đang truyền file.');
     if (!['rest', 'grpc'].includes(mode)) throw Error('Phương thức không hợp lệ.');
     this.stopActivity(); this.config.mode = mode;
     try { await this.startMode(); this.emit('status', { connected: true, text: `${mode.toUpperCase()} · ${this.config.host} · phòng ${this.config.room}` }); }
@@ -167,7 +167,9 @@ class Transport extends EventEmitter {
           this.stream.write({ token: this.session.token, text, requestId }); this.stats.chunks++;
         });
       }
-      this.receive(record); const ms = performance.now() - begin; this.emit('measurement', { operation: 'message', mode: this.config.mode, ms }); return ms;
+      this.receive(record); const ms = performance.now() - begin;
+      this.emit('measurement', { operation: 'message', mode: this.config.mode, ms, messageId: record.id, seq: record.seq, text, username: this.session.username });
+      return ms;
     } catch (e) { this.stats.errors++; this.statsChanged(); throw e; }
   }
   progress(operation, bytes, total) { this.emit('progress', { operation, bytes, total }); }
@@ -211,7 +213,7 @@ class Transport extends EventEmitter {
       }
       checksum ||= sourceHash.digest('hex');
       if (Number(info.size) !== bytes || info.sha256 !== checksum) throw Error('Checksum upload không khớp.');
-      this.transferMeasurement('upload', begin, bytes); return info;
+      this.transferMeasurement('upload', begin, bytes, { fileName: name }); return info;
     } catch (e) { this.stats.errors++; throw e; }
     finally { this.busy = false; this.statsChanged(); }
   }
@@ -234,13 +236,13 @@ class Transport extends EventEmitter {
       } }), fs.createWriteStream(temporary, { flags: 'wx' }));
       if (bytes !== Number(info.size) || hash.digest('hex') !== info.sha256) throw Error('Checksum download không khớp; đã xóa file truyền dở.');
       await fs.promises.rename(temporary, destination);
-      this.transferMeasurement('download', begin, bytes); return { bytes };
+      this.transferMeasurement('download', begin, bytes, { fileName: info.name, fileId: info.id }); return { bytes };
     } catch (e) { this.stats.errors++; throw e; }
     finally { this.busy = false; await fs.promises.rm(temporary, { force: true }); this.statsChanged(); }
   }
-  transferMeasurement(operation, begin, bytes) {
+  transferMeasurement(operation, begin, bytes, details = {}) {
     const ms = performance.now() - begin;
-    this.emit('measurement', { operation, mode: this.config.mode, ms, bytes, mibps: bytes / 1048576 / (ms / 1000) });
+    this.emit('measurement', { operation, mode: this.config.mode, ms, bytes, mibps: bytes / 1048576 / (ms / 1000), ...details });
   }
 }
 module.exports = { Transport };

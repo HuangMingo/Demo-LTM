@@ -44,33 +44,6 @@ public final class ChatService extends ChatServiceGrpc.ChatServiceImplBase {
     }
 
     @Override
-    public StreamObserver<ChatMessage> sendBatch(StreamObserver<BatchReply> out) {
-        List<ChatMessage> batch = new ArrayList<>();
-        return new StreamObserver<>() {
-            private boolean failed;
-            @Override public void onNext(ChatMessage message) {
-                if (failed) return;
-                if (batch.size() >= 100) {
-                    failed = true;
-                    batch.clear();
-                    out.onError(Status.RESOURCE_EXHAUSTED.withDescription("A batch can contain at most 100 messages.").asRuntimeException());
-                    return;
-                }
-                batch.add(normalize(message));
-            }
-            @Override public void onError(Throwable error) { failed = true; batch.clear(); }
-            @Override public void onCompleted() {
-                if (failed) return;
-                batch.forEach(ChatService.this::save);
-                String room = batch.isEmpty() ? "general" : batch.get(batch.size() - 1).getRoomId();
-                out.onNext(BatchReply.newBuilder().setAccepted(batch.size()).setRoomId(room)
-                        .setMessage("Batch saved to in-memory history.").build());
-                out.onCompleted();
-            }
-        };
-    }
-
-    @Override
     public StreamObserver<ChatEvent> liveChat(StreamObserver<ChatEvent> response) {
         Peer peer = new Peer(response);
         return new StreamObserver<>() {
